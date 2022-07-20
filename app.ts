@@ -8,6 +8,12 @@ import numbers from './routes/numbers';
 
 import Twilio from './modules/twilio';
 
+interface ErrorBody {
+  message: string;
+  env?: string;
+  stack?: string[];
+}
+
 const app = express();
 
 app.set('external-base-url', process.env.EXTERNAL_BASE_URL);
@@ -34,13 +40,21 @@ app.use((_req: Request, _res: Response, next: NextFunction) => {
 
 // error handler
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  if (err && !err.status) console.error('Unexpected error:', err);
+
+  // set body, only providing error in development
+  const body: ErrorBody = {
+    message: err.message,
+  };
+
+  if (req.app.get('env') === 'development') {
+    body.env = req.app.get('env');
+    if (err.stack) body.stack = err.stack.split('\n');
+  }
 
   // render the error page
   res.status(err.status || 500);
-  res.send();
+  res.send(body);
 });
 
 export default app;
