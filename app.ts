@@ -4,16 +4,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import logger from 'morgan';
 
 import root from './routes';
-import numbers, { setTwilio } from './routes/numbers';
+import numbers from './routes/numbers';
 
 import Twilio from './modules/twilio';
-
-setTwilio(
-  new Twilio(
-    process.env.TWILIO_ACCOUNT_SID || '',
-    process.env.TWILIO_AUTH_TOKEN || ''
-  )
-);
 
 const app = express();
 
@@ -24,7 +17,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use('/', root);
-app.use('/numbers', numbers);
+app.use(
+  '/numbers',
+  numbers(
+    new Twilio(
+      process.env.TWILIO_ACCOUNT_SID || '',
+      process.env.TWILIO_AUTH_TOKEN || ''
+    )
+  )
+);
 
 // catch 404 and forward to error handler
 app.use((_req: Request, _res: Response, next: NextFunction) => {
