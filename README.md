@@ -21,3 +21,18 @@ This project is set up to work with VScode "devcontainers".
       ```shell
       $ yarn watch
       ```
+
+numbers have an e164
+numbers may have a lease
+
+leases have a lessee
+leases have an expiration date
+
+lessees have a wallet address
+lessees have messages
+
+messages may be read
+messages have a sent date
+messages have a sent to number
+messages have a sent from number
+messages have a body encrypted by the lessees public key
