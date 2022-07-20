@@ -1,6 +1,6 @@
 # ΞNUM Lessor
 
-This project is a work-in-progress to provide a new service to managed leased phone numbers.
+This project is a work-in-progress to provide a new service to manage leased ΞNUMs.
 
 ## Development Setup
 

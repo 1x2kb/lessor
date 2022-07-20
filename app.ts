@@ -19,11 +19,6 @@ app.use(logger(stdout.isTTY ? 'dev' : 'common'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-const router = express.Router();
-router.get('/', (_request: Request, response: Response) => {
-  return response.status(200).send({ message: 'barf is live' });
-});
-
 app.use('/', root);
 app.use('/numbers', numbers);
 
@@ -41,7 +36,6 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   // render the error page
   res.status(err.status || 500);
   res.send();
-  // res.render('error');
 });
 
 export default app;
