@@ -9,13 +9,14 @@
   "scripts": {
     "build": "run-s build-schema build-js",
     "migrate": "prisma migrate",
+    "migrate-deploy": "prisma migrate deploy",
     "start": "node ./dist",
     "watch": "run-p watch-build watch-start",
     "build-schema": "prisma generate",
     "build-js": "tsc",
     "watch-build": "tsc --watch",
     "watch-start": "nodemon ./dist/index.js",
-    "heroku-postbuild": "prisma migrate deploy"
+    "heroku-postbuild": "run-s build migrate-deploy"
   },
   "dependencies": {
     "@awaitjs/express": "^0.9.0",
