@@ -115,6 +115,12 @@ export default class Prisma {
     return this.client.message.findMany({ where: conditions });
   }
 
+  async releaseNumber(e164: string) {
+    const number = await this.getNumber(e164);
+    if (number.leaseId)
+      await this.client.lease.delete({ where: { id: number.leaseId } });
+  }
+
   async getNumber(e164: string) {
     const number = await this.client.number.findUnique({
       where: { e164 },
