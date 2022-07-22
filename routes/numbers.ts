@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from 'express';
+import { Router } from '@awaitjs/express';
 import createError from 'http-errors';
 import Duration from '@icholy/duration';
 
@@ -17,107 +17,94 @@ interface SmsBody {
 }
 
 export default (prisma: Prisma, twilio: Twilio) => {
-  const router = express.Router();
+  const router = Router();
 
   /**
    * Get all leased numbers.
    */
-  router.get('/', async (_request: Request, response: Response) => {
+  router.getAsync('/', async (_request, response) => {
     const numbers = await prisma.getAllNumbers();
-    return response.status(200).send(numbers);
+    response.status(200).send(numbers);
   });
 
   /**
    * Lease a number.
    */
-  router.post(
-    '/',
-    async (request: Request, response: Response, next: NextFunction) => {
-      const lease = <LeaseBody>request.body;
-      if (!lease.wallet || !lease.duration) {
-        return next(
-          new createError.UnprocessableEntity(
-            'Request to lease must provide a wallet and a duration'
-          )
-        );
-      }
-
-      let e164 = await prisma.getAvailableE164();
-      if (e164) {
-        console.log('Using available number:', e164);
-      } else {
-        // request.baseURL is just the current mounted path (poorly named)
-        const smsUrl = new URL(
-          `${request.baseUrl}/sms`,
-          request.app.get('external-base-url')
-        );
-        e164 = await twilio.getAvailableNumber();
-        const info = await twilio.reserve(e164, 'POST', smsUrl.toString());
-        console.log('Reserved new number:', info);
-      }
-
-      const year = lease.duration.match(/^(\d+)y$/);
-      if (year) {
-        const days = Math.round(parseInt(year[1], 10) * 365.25);
-        lease.duration = `${days}d`;
-      }
-
-      const now = new Date();
-      const duration = new Duration(lease.duration);
-      const expiresAt = new Date(now.getTime() + duration.milliseconds());
-
-      await prisma.leaseE164(e164, lease.wallet, expiresAt);
-
-      return response.status(200).send({ e164 });
+  router.postAsync('/', async (request, response) => {
+    const lease = <LeaseBody>request.body;
+    if (!lease.wallet || !lease.duration) {
+      throw new createError.UnprocessableEntity(
+        'Request to lease must provide a wallet and a duration'
+      );
     }
-  );
+
+    let e164 = await prisma.getAvailableE164();
+    if (e164) {
+      console.log('Using available number:', e164);
+    } else {
+      // request.baseURL is just the current mounted path (poorly named)
+      const smsUrl = new URL(
+        `${request.baseUrl}/sms`,
+        request.app.get('external-base-url')
+      );
+      e164 = await twilio.getAvailableNumber();
+      const info = await twilio.reserve(e164, 'POST', smsUrl.toString());
+      console.log('Reserved new number:', info);
+    }
+
+    const year = lease.duration.match(/^(\d+)y$/);
+    if (year) {
+      const days = Math.round(parseInt(year[1], 10) * 365.25);
+      lease.duration = `${days}d`;
+    }
+
+    const now = new Date();
+    const duration = new Duration(lease.duration);
+    const expiresAt = new Date(now.getTime() + duration.milliseconds());
+
+    await prisma.leaseE164(e164, lease.wallet, expiresAt);
+
+    response.status(200).send({ e164 });
+  });
 
   /**
    * Process an SMS message sent to a leased number.
    */
-  router.post(
-    '/sms',
-    async (request: Request, response: Response, next: NextFunction) => {
-      const now = new Date();
+  router.postAsync('/sms', async (request, response) => {
+    const now = new Date();
 
-      console.log('Received SMS:', request.body);
-      const sms = <SmsBody>request.body;
+    console.log('Received SMS:', request.body);
+    const sms = <SmsBody>request.body;
 
-      if (!sms.To) {
-        return next(
-          new createError.UnprocessableEntity(
-            'SMS received without a destination'
-          )
-        );
-      }
-
-      await prisma.storeMessage(sms.To, sms.From, now, sms.Body);
-
-      return response.status(204).send();
+    if (!sms.To) {
+      throw new createError.UnprocessableEntity(
+        'SMS received without a destination'
+      );
     }
-  );
+
+    await prisma.storeMessage(sms.To, sms.From, now, sms.Body);
+
+    response.status(204).send();
+  });
 
   /**
    * Get SMS messages for a leased number.
    */
-  router.get(
-    '/sms/:e164/messages',
-    async (request: Request, response: Response) => {
-      const messages = await prisma.retrieveMessages(
-        `+${request.params.e164}`,
-        'unread' in request.query
-      );
+  router.getAsync('/sms/:e164/messages', async (request, response) => {
+    const messages = await prisma.retrieveMessages(
+      `+${request.params.e164}`,
+      'unread' in request.query
+    );
 
-      return response.status(200).send(messages);
-    }
-  );
+    response.status(200).send(messages);
+  });
 
   /**
    * Release a leased number.
    */
-  router.delete('/:e164', async (request: Request, response: Response) => {
+  router.deleteAsync('/:e164', async (request, response, _next) => {
     await prisma.releaseNumber(`+${request.params.e164}`);
-    return response.status(204).send();
+    response.status(204).send();
   });
 
   return router;

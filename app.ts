@@ -1,6 +1,6 @@
 import { stdout } from 'process';
-import createError from 'http-errors';
 import express, { Request, Response, NextFunction } from 'express';
+import createError from 'http-errors';
 import logger from 'morgan';
 
 import root from './routes';

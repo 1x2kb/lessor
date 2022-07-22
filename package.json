@@ -13,6 +13,7 @@
     "watch-start": "nodemon ./dist/index.js"
   },
   "dependencies": {
+    "@awaitjs/express": "^0.9.0",
     "@icholy/duration": "^5.1.0",
     "@prisma/client": "^4.1.0",
     "debug": "~4.3.4",
