@@ -84,9 +84,13 @@ export default (prisma: Prisma, twilio: Twilio) => {
   /**
    * Get SMS messages for a leased number.
    */
-  router.get('/sms/:e164', async (request: Request, response: Response) => {
-    console.log('barf', request.params, request.query);
-    return response.status(200).send();
+  router.get('/sms/:e164/messages', async (request: Request, response: Response) => {
+    const messages = await prisma.retrieveMessages(
+      `+${request.params.e164}`,
+      'unread' in request.query
+    );
+
+    return response.status(200).send(messages);
   });
 
   return router;

@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma as PrismaNS } from '@prisma/client';
 
 export class NumberError extends Error {
   e164: string;
@@ -22,7 +22,7 @@ export class NumberNotFoundError extends NumberError {
   }
 }
 
-export class UnleasedNumberError extends NumberError {
+export class NumberNotLeasedError extends NumberError {
   constructor(e164: string) {
     super(e164, 'is not leased');
   }
@@ -36,7 +36,7 @@ export default class Prisma {
   }
 
   async getAllNumbers() {
-    return this.client.number.findMany()
+    return this.client.number.findMany();
   }
 
   async getAvailableE164(): Promise<string | undefined> {
@@ -88,8 +88,36 @@ export default class Prisma {
     sentAt: Date,
     body: string
   ) {
+    const number = await this.getNumber(sentToE164);
+    if (!number.lease) return; // this is just to make eslint happy
+
+    const { lessee } = number.lease;
+    await this.client.message.create({
+      data: {
+        lesseeId: lessee.id,
+        sentAt,
+        sentToE164,
+        sentFromE164,
+        body,
+      },
+    });
+  }
+
+  async retrieveMessages(e164: string, unread = false) {
+    const number = await this.getNumber(e164);
+
+    const conditions: PrismaNS.MessageWhereInput = {
+      lesseeId: number.lease?.lesseeId,
+    };
+
+    if (unread) conditions.isRead = false;
+
+    return this.client.message.findMany({ where: conditions });
+  }
+
+  async getNumber(e164: string) {
     const number = await this.client.number.findUnique({
-      where: { e164: sentToE164 },
+      where: { e164 },
       include: {
         lease: {
           include: {
@@ -99,26 +127,9 @@ export default class Prisma {
       },
     });
 
-    if (!number) throw new NumberNotFoundError(sentToE164);
-    if (!number.lease) throw new UnleasedNumberError(sentToE164);
+    if (!number) throw new NumberNotFoundError(e164);
+    if (!number.lease) throw new NumberNotLeasedError(e164);
 
-    const { lessee } = number.lease;
-    this.client.lessee.update({
-      where: { id: lessee.id },
-      data: {
-        messages: {
-          createMany: {
-            data: [
-              {
-                sentAt,
-                sentToE164,
-                sentFromE164,
-                body,
-              },
-            ],
-          },
-        },
-      },
-    });
+    return number;
   }
 }
