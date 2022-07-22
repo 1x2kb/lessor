@@ -3,13 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "run-s build-schema build-js",
+    "migrate": "prisma migrate",
     "start": "node ./dist",
     "watch": "run-p watch-build watch-start",
+    "build-schema": "prisma generate",
+    "build-js": "tsc",
     "watch-build": "tsc --watch",
     "watch-start": "nodemon ./dist/index.js"
   },
   "dependencies": {
+    "@icholy/duration": "^5.1.0",
+    "@prisma/client": "^4.1.0",
     "debug": "~4.3.4",
     "express": "~4.18.1",
     "http-errors": "~2.0.0",
@@ -30,6 +35,7 @@
     "eslint-plugin-import": "^2.25.2",
     "nodemon": "^2.0.18",
     "npm-run-all": "^4.1.5",
+    "prisma": "^4.1.0",
     "typescript": "^4.7.4"
   }
 }

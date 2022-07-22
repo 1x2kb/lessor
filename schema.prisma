@@ -1,0 +1,45 @@
+datasource db {
+  url      = env("DATABASE_URL")
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Number {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  e164      String   @unique
+  lease     Lease?   @relation(fields: [leaseId], references: [id])
+  leaseId   Int?
+}
+
+model Lease {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  lessee    Lessee   @relation(fields: [lesseeId], references: [id])
+  lesseeId  Int
+  // FIXME: the number field should be a "belongs-to" not "has-many"
+  number    Number[]
+}
+
+model Lessee {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  wallet    String    @unique
+  messages  Message[]
+  leases    Lease[]
+}
+
+model Message {
+  id           Int      @id @default(autoincrement())
+  isRead       Boolean  @default(false)
+  sentAt       DateTime
+  sentToE164   String
+  sentFromE164 String
+  body         String
+  lessee       Lessee   @relation(fields: [lesseeId], references: [id])
+  lesseeId     Int
+}

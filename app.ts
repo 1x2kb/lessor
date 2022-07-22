@@ -6,6 +6,7 @@ import logger from 'morgan';
 import root from './routes';
 import numbers from './routes/numbers';
 
+import Prisma from './modules/prisma';
 import Twilio from './modules/twilio';
 
 interface ErrorBody {
@@ -14,6 +15,7 @@ interface ErrorBody {
   stack?: string[];
 }
 
+const prisma = new Prisma();
 const app = express();
 
 app.set('external-base-url', process.env.EXTERNAL_BASE_URL);
@@ -26,6 +28,7 @@ app.use('/', root);
 app.use(
   '/numbers',
   numbers(
+    prisma,
     new Twilio(
       process.env.TWILIO_ACCOUNT_SID || '',
       process.env.TWILIO_AUTH_TOKEN || ''
