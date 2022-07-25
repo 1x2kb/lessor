@@ -5,6 +5,8 @@ import Duration from '@icholy/duration';
 import Prisma from '../modules/prisma';
 import Twilio from '../modules/twilio';
 
+import messages from './messages';
+
 interface LeaseBody {
   wallet: string;
   duration: string;
@@ -88,15 +90,11 @@ export default (prisma: Prisma, twilio: Twilio) => {
   });
 
   /**
-   * Get SMS messages for a leased number.
+   * Get details about a number.
    */
-  router.getAsync('/sms/:e164/messages', async (request, response) => {
-    const messages = await prisma.retrieveMessages(
-      `+${request.params.e164}`,
-      'unread' in request.query
-    );
-
-    response.status(200).send(messages);
+  router.getAsync('/:e164', async (request, response) => {
+    const number = await prisma.getNumber(`+${request.params.e164}`);
+    response.status(200).send(number);
   });
 
   /**
@@ -106,6 +104,8 @@ export default (prisma: Prisma, twilio: Twilio) => {
     await prisma.releaseNumber(`+${request.params.e164}`);
     response.status(204).send();
   });
+
+  router.use('/:e164/messages', messages(prisma));
 
   return router;
 };

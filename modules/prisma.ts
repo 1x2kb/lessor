@@ -115,13 +115,31 @@ export default class Prisma {
     return this.client.message.findMany({ where: conditions });
   }
 
+  async updateMessage(e164: string, msgid: number, isRead: boolean) {
+    const number = await this.getNumber(e164);
+    const lessee = number.lease?.lessee;
+    if (!lessee) return;
+
+    await this.client.lessee.update({
+      where: { id: lessee.id },
+      data: {
+        messages: {
+          update: {
+            where: { id: msgid },
+            data: { isRead },
+          },
+        },
+      },
+    });
+  }
+
   async releaseNumber(e164: string) {
     const number = await this.getNumber(e164);
     if (number.leaseId)
       await this.client.lease.delete({ where: { id: number.leaseId } });
   }
 
-  async getNumber(e164: string) {
+  async getNumber(e164: string, allowUnleased = false) {
     const number = await this.client.number.findUnique({
       where: { e164 },
       include: {
@@ -134,7 +152,7 @@ export default class Prisma {
     });
 
     if (!number) throw new NumberNotFoundError(e164);
-    if (!number.lease) throw new NumberNotLeasedError(e164);
+    if (!number.lease && !allowUnleased) throw new NumberNotLeasedError(e164);
 
     return number;
   }
